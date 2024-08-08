@@ -16,7 +16,7 @@ pub mod extensions;
 #[strum_discriminants(derive(EnumMessage, EnumIter))]
 #[interactive_clap(disable_back)]
 #[non_exhaustive]
-/// What are you up to? (select one of the options with the up-down arrows on your keyboard and press Enter)
+/// What are you up to?
 pub enum TopLevelCommand {
     #[strum_discriminants(strum(message = "account     - Manage accounts"))]
     /// View account summary, create subaccount, delete account, list keys, add key, delete key, import account
