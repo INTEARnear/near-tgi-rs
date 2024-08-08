@@ -1721,23 +1721,23 @@ pub fn display_account_info(
 
     table.add_row(prettytable::row![
         Fg->"Native account balance",
-        Fy->near_token::NearToken::from_yoctonear(account_view.amount)
+        Fy->crate::escape_markdownv2(&format!("{}", near_token::NearToken::from_yoctonear(account_view.amount)))
     ]);
     table.add_row(prettytable::row![
         Fg->"Validator stake",
-        Fy->near_token::NearToken::from_yoctonear(account_view.locked)
+        Fy->crate::escape_markdownv2(&format!("{}", near_token::NearToken::from_yoctonear(account_view.locked)))
     ]);
 
     for (validator_id, stake) in delegated_stake {
         table.add_row(prettytable::row![
-            Fg->format!("Delegated stake with <{validator_id}>"),
+            Fg->format!("Delegated stake with <`{validator_id}`\\>"),
             Fy->stake
         ]);
     }
 
     table.add_row(prettytable::row![
         Fg->"Storage used by the account",
-        Fy->bytesize::ByteSize(account_view.storage_usage),
+        Fy->crate::escape_markdownv2(&format!("{}", bytesize::ByteSize(account_view.storage_usage))),
     ]);
 
     let contract_status = if account_view.code_hash == CryptoHash::default() {
@@ -1746,14 +1746,14 @@ pub fn display_account_info(
         hex::encode(account_view.code_hash.as_ref())
     };
     table.add_row(prettytable::row![
-        Fg->"Contract (SHA-256 checksum hex)",
+        Fg->"Contract \\(SHA\\-256 checksum hex\\)",
         Fy->contract_status
     ]);
 
     let access_keys_summary = if let Some(info) = access_key_list {
         let keys = &info.keys;
         if keys.is_empty() {
-            "Account is locked (no access keys)".to_string()
+            "Account is locked \\(no access keys\\)".to_string()
         } else {
             let full_access_keys_count = keys
                 .iter()
@@ -1765,13 +1765,13 @@ pub fn display_account_info(
                 })
                 .count();
             format!(
-                "{} full access keys and {} function-call-only access keys",
+                "{} full access keys and {} function\\-call\\-only access keys",
                 full_access_keys_count,
                 keys.len() - full_access_keys_count
             )
         }
     } else {
-        "Warning: Failed to retrieve access keys. Retry later."
+        "Warning: Failed to retrieve access keys\\. Retry later\\."
             .red()
             .to_string()
     };
@@ -1780,7 +1780,7 @@ pub fn display_account_info(
         Fg->"Access keys",
         Fy->access_keys_summary
     ]);
-    table.printstd();
+    crate::print_table(&table);
 }
 
 pub fn display_account_profile(
@@ -1798,7 +1798,7 @@ pub fn display_account_profile(
         optional_account_profile,
         &mut table,
     );
-    table.printstd();
+    crate::print_table(&table);
 }
 
 fn profile_table(
@@ -1811,25 +1811,25 @@ fn profile_table(
     if let Some(account_profile) = optional_account_profile {
         if let Some(name) = &account_profile.profile.name {
             table.add_row(prettytable::row![
-                Fy->format!("{account_id} ({name})"),
-                format!("At block #{}\n({})", viewed_at_block_height, viewed_at_block_hash)
+                Fy->format!("`{account_id}` \\({name}\\)", name = crate::escape_markdownv2(name)),
+                format!("At block \\#`{}`\n\\(`{}`\\)", viewed_at_block_height, viewed_at_block_hash)
             ]);
         } else {
             table.add_row(prettytable::row![
                 Fy->account_id,
-                format!("At block #{}\n({})", viewed_at_block_height, viewed_at_block_hash)
+                format!("At block \\#`{}`\n\\(`{}`\\)", viewed_at_block_height, viewed_at_block_hash)
             ]);
         }
         if let Some(image) = &account_profile.profile.image {
             if let Some(url) = &image.url {
                 table.add_row(prettytable::row![
-                    Fg->"Image (url)",
-                    Fy->url
+                    Fg->"Image \\(url\\)",
+                    Fy->crate::escape_markdownv2(&url.to_string())
                 ]);
             }
             if let Some(ipfs_cid) = &image.ipfs_cid {
                 table.add_row(prettytable::row![
-                    Fg->"Image (ipfs_cid)",
+                    Fg->"Image \\(ipfs\\_cid\\)",
                     Fy->ipfs_cid
                 ]);
             }
@@ -1837,13 +1837,13 @@ fn profile_table(
         if let Some(background_image) = &account_profile.profile.background_image {
             if let Some(url) = &background_image.url {
                 table.add_row(prettytable::row![
-                    Fg->"Background image (url)",
-                    Fy->url
+                    Fg->"Background image \\(url\\)",
+                    Fy->crate::escape_markdownv2(&url.to_string())
                 ]);
             }
             if let Some(ipfs_cid) = &background_image.ipfs_cid {
                 table.add_row(prettytable::row![
-                    Fg->"Background image (ipfs_cid)",
+                    Fg->"Background image \\(ipfs_cid\\)",
                     Fy->ipfs_cid
                 ]);
             }
@@ -1851,7 +1851,7 @@ fn profile_table(
         if let Some(description) = &account_profile.profile.description {
             table.add_row(prettytable::row![
                 Fg->"Description",
-                Fy->format!("{}", description)
+                Fy->crate::escape_markdownv2(description)
             ]);
         }
         if let Some(linktree) = &account_profile.profile.linktree {
@@ -1864,24 +1864,28 @@ fn profile_table(
                     if key == "github" {
                         table.add_row(prettytable::row![
                             Fg->"",
-                            Fy->format!("https://github.com/{value}")
+                            Fy->format!("[GitHub](https://github.com/{value})", value = crate::escape_markdownv2_link(value))
                         ]);
                     } else if key == "twitter" {
                         table.add_row(prettytable::row![
                             Fg->"",
-                            Fy->format!("https://twitter.com/{value}")
+                            Fy->format!("[Twitter](https://x.com/{value})", value = crate::escape_markdownv2_link(value))
                         ]);
                     } else if key == "telegram" {
                         table.add_row(prettytable::row![
                             Fg->"",
-                            Fy->format!("https://t.me/{value}")
+                            Fy->format!("[Telegram](https://t.me/{value})", value = crate::escape_markdownv2_link(value))
                         ]);
                     }
                 }
             }
         }
         if let Some(tags) = &account_profile.profile.tags {
-            let keys = tags.keys().cloned().collect::<Vec<String>>().join(", ");
+            let keys = tags
+                .keys()
+                .map(|tag| crate::escape_markdownv2(tag))
+                .collect::<Vec<String>>()
+                .join(", ");
             table.add_row(prettytable::row![
                 Fg->"Tags",
                 Fy->keys
@@ -1890,13 +1894,12 @@ fn profile_table(
     } else {
         table.add_row(prettytable::row![
             Fy->account_id,
-            format!("At block #{}\n({})", viewed_at_block_height, viewed_at_block_hash)
+            format!("At block \\#{}\n\\({}\\)", viewed_at_block_height, viewed_at_block_hash)
         ]);
         table.add_row(prettytable::row![
             Fd->"NEAR Social profile unavailable",
-            Fd->format!("The profile can be edited at {}\nor using the cli command: {}\n(https://github.com/bos-cli-rs/bos-cli-rs)",
-                "https://near.social".blue(),
-                "bos social-db manage-profile".blue()
+            Fd->format!("The profile can be edited at [near\\.social](https://near.social)\nor using the cli command: {}\n[bos\\-cli\\-rs](https://github.com/bos-cli-rs/bos-cli-rs)",
+                "bos social\\-db manage\\-profile".blue()
             )
         ]);
     }
@@ -1904,7 +1907,7 @@ fn profile_table(
 
 pub fn display_access_key_list(access_keys: &[near_primitives::views::AccessKeyInfoView]) {
     let mut table = Table::new();
-    table.set_titles(prettytable::row![Fg=>"#", "Public Key", "Nonce", "Permissions"]);
+    table.set_titles(prettytable::row![Fg=>"\\#", "Public Key", "Nonce", "Permissions"]);
 
     for (index, access_key) in access_keys.iter().enumerate() {
         let permissions_message = match &access_key.access_key.permission {
@@ -1917,19 +1920,31 @@ pub fn display_access_key_list(access_keys: &[near_primitives::views::AccessKeyI
                 let allowance_message = match allowance {
                     Some(amount) => format!(
                         "with an allowance of {}",
-                        near_token::NearToken::from_yoctonear(*amount)
+                        crate::escape_markdownv2(&format!(
+                            "{}",
+                            near_token::NearToken::from_yoctonear(*amount)
+                        ))
                     ),
                     None => "with no limit".to_string(),
                 };
                 if method_names.is_empty() {
                     format!(
-                        "do any function calls on {} {}",
+                        "do any function calls on `{}` {}",
                         receiver_id, allowance_message
                     )
                 } else {
                     format!(
-                        "only do {:?} function calls on {} {}",
-                        method_names, receiver_id, allowance_message
+                        "only do \\[{}\\] function calls on `{}` {}",
+                        method_names
+                            .into_iter()
+                            .map(|method_name| format!(
+                                "`{}`",
+                                crate::escape_markdownv2_code(&method_name)
+                            ))
+                            .collect::<Vec<_>>()
+                            .join(", "),
+                        receiver_id,
+                        allowance_message
                     )
                 }
             }
@@ -1944,7 +1959,7 @@ pub fn display_access_key_list(access_keys: &[near_primitives::views::AccessKeyI
     }
 
     table.set_format(*prettytable::format::consts::FORMAT_NO_LINESEP_WITH_TITLE);
-    table.printstd();
+    crate::print_table(&table);
 }
 
 /// Interactive prompt for network name.

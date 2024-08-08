@@ -36,7 +36,7 @@ impl From<ValidatorListContext> for crate::network::NetworkContext {
 #[tracing::instrument(name = "View the list of validators for delegation ...", skip_all)]
 fn display_validators_info(network_config: &crate::config::NetworkConfig) -> crate::CliResult {
     let mut table = Table::new();
-    table.set_titles(prettytable::row![Fg=>"#", "Validator Id", "Fee", "Delegators", "Stake"]);
+    table.set_titles(prettytable::row![Fg=>"\\#", "Validator Id", "Fee", "Delegators", "Stake"]);
 
     for (index, validator) in crate::common::get_validator_list(network_config)?
         .into_iter()
@@ -54,14 +54,14 @@ fn display_validators_info(network_config: &crate::config::NetworkConfig) -> cra
         };
         table.add_row(prettytable::row![
             Fg->index + 1,
-            validator.validator_id,
-            fee,
-            delegators,
-            near_token::NearToken::from_yoctonear(validator.stake),
+            format!("`{}`", validator.validator_id),
+            crate::escape_markdownv2(&fee),
+            crate::escape_markdownv2(&delegators),
+            crate::escape_markdownv2(&format!("{}", near_token::NearToken::from_yoctonear(validator.stake))),
         ]);
     }
     table.set_format(*prettytable::format::consts::FORMAT_NO_LINESEP_WITH_TITLE);
-    table.printstd();
+    crate::print_table(&table);
     let validators_url: url::Url = network_config.wallet_url.join("staking/validators")?;
     eprintln!(
         "This is not a complete list of validators. To see the full list of validators visit Explorer:\n{}\n",

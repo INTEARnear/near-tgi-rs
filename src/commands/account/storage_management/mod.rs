@@ -12,7 +12,7 @@ pub struct Contract {
     /// Which contract account ID do you want to manage the storage deposit for?
     contract_account_id: crate::types::account_id::AccountId,
     #[interactive_clap(subcommand)]
-    storage_actions: StorageActions,
+    pub storage_actions: StorageActions,
 }
 
 #[derive(Clone)]

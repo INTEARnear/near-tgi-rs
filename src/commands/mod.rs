@@ -2,10 +2,10 @@
 use strum::{EnumDiscriminants, EnumIter, EnumMessage};
 
 pub mod account;
-mod config;
+pub mod config;
 pub mod contract;
-mod staking;
-mod tokens;
+pub mod staking;
+pub mod tokens;
 pub mod transaction;
 
 #[cfg(feature = "self-update")]

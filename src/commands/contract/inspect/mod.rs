@@ -141,8 +141,8 @@ async fn display_inspect_contract(
     table.set_format(*prettytable::format::consts::FORMAT_NO_COLSEP);
 
     table.add_row(prettytable::row![
-        Fg->account_id,
-        format!("At block #{}\n({})", view_code_response.block_height, view_code_response.block_hash)
+        Fg->format!("`{account_id}`"),
+        format!("At block \\#{}\n\\({}\\)", view_code_response.block_height, view_code_response.block_hash)
     ]);
 
     let contract_status = if account_view.code_hash == near_primitives::hash::CryptoHash::default()
@@ -152,25 +152,25 @@ async fn display_inspect_contract(
         hex::encode(account_view.code_hash.as_ref())
     };
     table.add_row(prettytable::row![
-        Fy->"SHA-256 checksum hex",
+        Fy->"SHA\\-256 checksum hex",
         contract_status
     ]);
 
     table.add_row(prettytable::row![
         Fy->"Storage used",
-        format!("{} ({} Wasm + {} data)",
-            bytesize::ByteSize(account_view.storage_usage),
-            bytesize::ByteSize(u64::try_from(contract_code_view.code.len())?),
-            bytesize::ByteSize(
+        format!("{} \\({} Wasm \\+ {} data\\)",
+            crate::escape_markdownv2(&format!("{}", bytesize::ByteSize(account_view.storage_usage))),
+            crate::escape_markdownv2(&format!("{}", bytesize::ByteSize(u64::try_from(contract_code_view.code.len())?))),
+            crate::escape_markdownv2(&format!("{}", bytesize::ByteSize(
                 account_view.storage_usage
                     .checked_sub(u64::try_from(contract_code_view.code.len())?)
                     .expect("Unexpected error")
-            )
+            )))
         )
     ]);
 
     let access_keys_summary = if access_keys.is_empty() {
-        "Contract is locked (no access keys)".to_string()
+        "Contract is locked \\(no access keys\\)".to_string()
     } else {
         let full_access_keys_count = access_keys
             .iter()
@@ -182,7 +182,7 @@ async fn display_inspect_contract(
             })
             .count();
         format!(
-            "{} full access keys and {} function-call-only access keys",
+            "{} full access keys and {} function\\-call\\-only access keys",
             full_access_keys_count,
             access_keys.len() - full_access_keys_count
         )
@@ -196,18 +196,18 @@ async fn display_inspect_contract(
         Ok(contract_source_metadata) => {
             table.add_row(prettytable::row![
                 Fy->"Contract version",
-                contract_source_metadata.version.unwrap_or_default()
+                crate::escape_markdownv2(&contract_source_metadata.version.unwrap_or_default())
             ]);
             table.add_row(prettytable::row![
                 Fy->"Contract link",
-                contract_source_metadata.link.unwrap_or_default()
+                crate::escape_markdownv2(&contract_source_metadata.link.unwrap_or_default())
             ]);
             table.add_row(prettytable::row![
                 Fy->"Supported standards",
                 contract_source_metadata.standards
                     .iter()
                     .fold(String::new(), |mut output, standard| {
-                        let _ = writeln!(output, "{} ({})", standard.standard, standard.version);
+                        let _ = writeln!(output, "{} \\({}\\)", crate::escape_markdownv2(&standard.standard), crate::escape_markdownv2(&standard.version));
                         output
                     })
             ]);
@@ -248,12 +248,12 @@ async fn display_inspect_contract(
         Ok(abi_root) => {
             table.add_row(prettytable::row![
                 Fy->"NEAR ABI version",
-                abi_root.schema_version
+                crate::escape_markdownv2(&abi_root.schema_version)
             ]);
-            table.printstd();
+            crate::print_table(&table);
 
-            println!(
-                "\n {} (hint: you can download full JSON Schema using `download-abi` command)",
+            println_escaped!(
+                "\n {} \\(hint: you can download full JSON Schema using `download-abi` command\\)",
                 "Functions:".yellow()
             );
             for function in abi_root.body.functions {
@@ -262,17 +262,17 @@ async fn display_inspect_contract(
                 table_func.add_empty_row();
 
                 table_func.add_row(prettytable::row![format!(
-                    "{} ({}) {}\n{}",
+                    "{} \\({}\\) {}\n{}",
                     format!(
-                        "fn {}({}) -> {}",
+                        "fn `{}`\\({}\\) \\-\\> {}",
                         function.name.green(),
-                        "...".yellow(),
-                        "...".blue()
+                        "\\.\\.\\.".yellow(),
+                        "\\.\\.\\.".blue()
                     ),
                     match function.kind {
                         near_abi::AbiFunctionKind::Call =>
-                            "read-write function - transcation required",
-                        near_abi::AbiFunctionKind::View => "read-only function",
+                            "read\\-write function \\- transcation required",
+                        near_abi::AbiFunctionKind::View => "read\\-only function",
                     },
                     function
                         .modifiers
@@ -291,37 +291,47 @@ async fn display_inspect_contract(
                         }),
                     function.doc.unwrap_or_default()
                 )]);
-                table_func.printstd();
+                crate::print_table(&table);
 
                 let mut table_args = prettytable::Table::new();
                 table_args.set_format(*prettytable::format::consts::FORMAT_CLEAN);
                 table_args.get_format().padding(1, 0);
 
                 table_args.add_row(prettytable::row![
-                    "...".yellow(),
-                    Fy->"Arguments (JSON Schema):",
+                    "\\.\\.\\.".yellow(),
+                    Fy->"Arguments \\(JSON Schema\\):",
                 ]);
                 table_args.add_row(prettytable::row![
                     "   ",
                     if function.params.is_empty() {
                         "No arguments needed".to_string()
                     } else {
-                        serde_json::to_string_pretty(&function.params).unwrap_or_default()
+                        format!(
+                            "```json\n{}\n```",
+                            crate::escape_markdownv2_code(
+                                &serde_json::to_string_pretty(&function.params).unwrap_or_default()
+                            )
+                        )
                     }
                 ]);
                 table_args.add_row(prettytable::row![
-                    "...".blue(),
-                    Fb->"Return Value (JSON Schema):",
+                    "\\.\\.\\.".blue(),
+                    Fb->"Return Value \\(JSON Schema\\):",
                 ]);
                 table_args.add_row(prettytable::row![
                     "   ",
                     if let Some(result) = function.result {
-                        serde_json::to_string_pretty(&result).unwrap_or_default()
+                        format!(
+                            "```json\n{}\n```",
+                            crate::escape_markdownv2_code(
+                                &serde_json::to_string_pretty(&result).unwrap_or_default()
+                            )
+                        )
                     } else {
                         "No return value".to_string()
                     }
                 ]);
-                table_args.printstd();
+                crate::print_table(&table_args);
             }
         }
         Err(err) => {
@@ -339,9 +349,9 @@ async fn display_inspect_contract(
                     80
                 )
             ]);
-            table.printstd();
-            println!(
-                "\n {} (NEAR ABI is not available, so only function names are extracted)\n",
+            crate::print_table(&table);
+            println_escaped!(
+                "\n {} \\(NEAR ABI is not available, so only function names are extracted\\)\n",
                 "Functions:".yellow()
             );
 
@@ -358,11 +368,11 @@ async fn display_inspect_contract(
                         let export = export
                             .wrap_err_with(|| format!("Could not parse WebAssembly export section of the contract <{account_id}>."))?;
                         if let wasmparser::ExternalKind::Func = export.kind {
-                            println!(
-                                " fn {}({}) -> {}\n",
+                            println_escaped!(
+                                " fn `{}`\\({}\\) \\-\\> {}\n",
                                 export.name.green(),
-                                "...".yellow(),
-                                "...".blue()
+                                "\\.\\.\\.".yellow(),
+                                "\\.\\.\\.".blue()
                             );
                         }
                     }
@@ -395,7 +405,7 @@ async fn get_account_view(
         if let Err(near_jsonrpc_client::errors::JsonRpcError::TransportError(_)) =
             &account_view_response
         {
-            eprintln!("Transport error.\nPlease wait. The next try to send this query is happening right now ...");
+            // eprintln!("Transport error.\nPlease wait. The next try to send this query is happening right now ...");
             std::thread::sleep(std::time::Duration::from_millis(100))
         } else {
             return account_view_response
@@ -433,7 +443,7 @@ async fn get_access_keys(
         if let Err(near_jsonrpc_client::errors::JsonRpcError::TransportError(_)) =
             &access_keys_response
         {
-            eprintln!("Transport error.\nPlease wait. The next try to send this query is happening right now ...");
+            // eprintln!("Transport error.\nPlease wait. The next try to send this query is happening right now ...");
             std::thread::sleep(std::time::Duration::from_millis(100))
         } else {
             return Ok(access_keys_response
@@ -453,16 +463,18 @@ async fn get_access_keys(
 
 #[derive(Error, Debug)]
 pub enum FetchContractSourceMetadataError {
-    #[error("Contract Source Metadata (https://nomicon.io/Standards/SourceMetadata) is not supported by the contract, so there is no way to get detailed information.")]
+    #[error("Contract [Source Metadata](https://nomicon.io/Standards/SourceMetadata) is not supported by the contract, so there is no way to get detailed information\\.")]
     ContractSourceMetadataNotSupported,
-    #[error("'contract_source_metadata' function call failed due to RPC error, so there is no way to get Contract Source Metadata. See more details about the error:\n\n{0}")]
+    #[error("'contract_source_metadata' function call failed due to RPC error, so there is no way to get Contract Source Metadata\\. See more details about the error:\n\n{0}")]
     RpcError(
-        near_jsonrpc_client::errors::JsonRpcError<
-            near_jsonrpc_primitives::types::query::RpcQueryError,
+        crate::MarkdownEscape<
+            near_jsonrpc_client::errors::JsonRpcError<
+                near_jsonrpc_primitives::types::query::RpcQueryError,
+            >,
         >,
     ),
-    #[error("The contract source metadata format is unknown (https://nomicon.io/Standards/SourceMetadata), so there is no way to get detailed information. See more details about the error:\n\n{0}")]
-    ContractSourceMetadataUnknownFormat(Report),
+    #[error("The contract [source metadata](https://nomicon.io/Standards/SourceMetadata) format is unknown, so there is no way to get detailed information\\. See more details about the error:\n\n{0}")]
+    ContractSourceMetadataUnknownFormat(crate::MarkdownEscape<Report>),
 }
 
 #[tracing::instrument(name = "Getting contract source metadata", skip_all)]
@@ -488,7 +500,7 @@ async fn get_contract_source_metadata(
             Err(near_jsonrpc_client::errors::JsonRpcError::TransportError(_))
                 if retries_left.next().is_some() =>
             {
-                eprintln!("Transport error.\nPlease wait. The next try to send this query is happening right now ...");
+                // eprintln!("Transport error.\nPlease wait. The next try to send this query is happening right now ...");
             }
             Err(near_jsonrpc_client::errors::JsonRpcError::ServerError(
                 near_jsonrpc_client::errors::JsonRpcServerError::HandlerError(
@@ -501,14 +513,18 @@ async fn get_contract_source_metadata(
                 return Err(FetchContractSourceMetadataError::ContractSourceMetadataNotSupported);
             }
             Err(err) => {
-                return Err(FetchContractSourceMetadataError::RpcError(err));
+                return Err(FetchContractSourceMetadataError::RpcError(
+                    crate::MarkdownEscape(err),
+                ));
             }
             Ok(contract_source_metadata_response) => {
                 return contract_source_metadata_response
                     .call_result()
+                    .map_err(crate::MarkdownEscape)
                     .map_err(FetchContractSourceMetadataError::ContractSourceMetadataUnknownFormat)?
                     .parse_result_from_json::<self::contract_metadata::ContractSourceMetadata>()
                     .wrap_err("Failed to parse contract source metadata")
+                    .map_err(crate::MarkdownEscape)
                     .map_err(
                         FetchContractSourceMetadataError::ContractSourceMetadataUnknownFormat,
                     );
@@ -520,14 +536,16 @@ async fn get_contract_source_metadata(
 
 #[derive(Error, Debug)]
 pub enum FetchAbiError {
-    #[error("Contract does not support NEAR ABI (https://github.com/near/abi), so there is no way to get details about the function argument and return values.")]
+    #[error("Contract does not support [NEAR ABI](https://github.com/near/abi), so there is no way to get details about the function argument and return values\\.")]
     AbiNotSupported,
-    #[error("The contract has unknown NEAR ABI format (https://github.com/near/abi), so there is no way to get details about the function argument and return values. See more details about the error:\n\n{0}")]
-    AbiUnknownFormat(Report),
-    #[error("'__contract_abi' function call failed due to RPC error, so there is no way to get details about the function argument and return values. See more details about the error:\n\n{0}")]
+    #[error("The contract has unknown [NEAR ABI](https://github.com/near/abi) format, so there is no way to get details about the function argument and return values\\. See more details about the error:\n\n{0}")]
+    AbiUnknownFormat(crate::MarkdownEscape<Report>),
+    #[error("'__contract_abi' function call failed due to RPC error, so there is no way to get details about the function argument and return values\\. See more details about the error:\n\n{0}")]
     RpcError(
-        near_jsonrpc_client::errors::JsonRpcError<
-            near_jsonrpc_primitives::types::query::RpcQueryError,
+        crate::MarkdownEscape<
+            near_jsonrpc_client::errors::JsonRpcError<
+                near_jsonrpc_primitives::types::query::RpcQueryError,
+            >,
         >,
     ),
 }
@@ -555,7 +573,7 @@ pub async fn get_contract_abi(
             Err(near_jsonrpc_client::errors::JsonRpcError::TransportError(_))
                 if retries_left.next().is_some() =>
             {
-                eprintln!("Transport error.\nPlease wait. The next try to send this query is happening right now ...");
+                // eprintln!("Transport error.\nPlease wait. The next try to send this query is happening right now ...");
             }
             Err(near_jsonrpc_client::errors::JsonRpcError::ServerError(
                 near_jsonrpc_client::errors::JsonRpcServerError::HandlerError(
@@ -568,21 +586,24 @@ pub async fn get_contract_abi(
                 return Err(FetchAbiError::AbiNotSupported);
             }
             Err(err) => {
-                return Err(FetchAbiError::RpcError(err));
+                return Err(FetchAbiError::RpcError(crate::MarkdownEscape(err)));
             }
             Ok(contract_abi_response) => {
                 return serde_json::from_slice::<near_abi::AbiRoot>(
                     &zstd::decode_all(
                         contract_abi_response
                             .call_result()
+                            .map_err(crate::MarkdownEscape)
                             .map_err(FetchAbiError::AbiUnknownFormat)?
                             .result
                             .as_slice(),
                     )
                     .wrap_err("Failed to 'zstd::decode_all' NEAR ABI")
+                    .map_err(crate::MarkdownEscape)
                     .map_err(FetchAbiError::AbiUnknownFormat)?,
                 )
                 .wrap_err("Failed to parse NEAR ABI schema")
+                .map_err(crate::MarkdownEscape)
                 .map_err(FetchAbiError::AbiUnknownFormat);
             }
         }

@@ -17,7 +17,7 @@ pub const MIN_ALLOWED_TOP_LEVEL_ACCOUNT_LENGTH: usize = 32;
 #[interactive_clap(context = crate::GlobalContext)]
 pub struct AccountCommands {
     #[interactive_clap(subcommand)]
-    account_actions: AccountActions,
+    pub account_actions: AccountActions,
 }
 
 #[derive(Debug, EnumDiscriminants, Clone, interactive_clap::InteractiveClap)]
