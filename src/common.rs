@@ -1731,7 +1731,7 @@ pub fn display_account_info(
     for (validator_id, stake) in delegated_stake {
         table.add_row(prettytable::row![
             Fg->format!("Delegated stake with <`{validator_id}`\\>"),
-            Fy->stake
+            Fy->crate::escape_markdownv2(&format!("{}", stake))
         ]);
     }
 
