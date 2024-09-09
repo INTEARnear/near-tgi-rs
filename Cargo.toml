@@ -28,7 +28,7 @@ lazy_static = "1.4.0"
 itertools = "0.13.0"
 
 clap = { version = "4.0.18", features = ["derive"] }
-inquire = "0.7"
+inquire = { path = "../inquire" }
 strum = { version = "0.24", features = ["derive"] }
 strum_macros = "0.24"
 smart-default = "0.7.1"
@@ -101,7 +101,7 @@ near-socialdb-client = "0.5"
 near-abi = "0.4.2"
 zstd = "0.13"
 
-keyring = { version = "3.0.5", features = ["apple-native", "windows-native", "sync-secret-service", "vendored"] }
+keyring = { path = "../keyring", features = ["apple-native", "windows-native", "sync-secret-service", "vendored"] }
 interactive-clap = "0.3"
 interactive-clap-derive = "0.3"
 

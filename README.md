@@ -1,3 +1,7 @@
+# NEAR TGI
+
+This crate is not supposed to be used by anything other than [Tear](htttps://github.com/INTEARnear/Tear), it uses some `../something` paths because I can't figure out the best way to store repos inside repos while maintaining commit chain for easy merging. This can probably improved, but not a priority for now.
+
 # NEAR CLI
 
 near CLI is your **human-friendly** companion that helps to interact with [NEAR Protocol](https://near.org) from command line.
